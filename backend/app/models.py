@@ -4,8 +4,10 @@ from datetime import datetime
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pydantic import ConfigDict, EmailStr
-from sqlalchemy import TEXT,Enum
-from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import TEXT
+from enum import Enum
+from sqlmodel import Field, Relationship, SQLModel, Session
+from sqlalchemy.sql import select
 
 ktc = ZoneInfo("Asia/Seoul")
 # Shared properties
@@ -43,11 +45,9 @@ class DayOfWeekEnum(str, Enum):
 
 
 class Alarm(SQLModel, table=True):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    # model_config = ConfigDict(arbitrary_types_allowed=True)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(foreign_key="user.id",unique=True)
-    frequency: Optional[int] = None
-    day_of_week: Optional[int] = None
     frequency: Optional[FrequencyEnum] = Field(default=FrequencyEnum.NONE)
     day_of_week: Optional[DayOfWeekEnum] = Field(default=DayOfWeekEnum.MONDAY)
     day_of_month: Optional[int] = None
@@ -95,21 +95,21 @@ class CategoryEnum(str, Enum):
 
 
 class Category(SQLModel, table=True):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # model_config = ConfigDict(arbitrary_types_allowed=True)
+    id: int = Field(default=None, primary_key=True)
     name: CategoryEnum
     # name: int
 
 
 class UserCategory(SQLModel, table=True):
     user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
-    category_id: uuid.UUID = Field(foreign_key="category.id", primary_key=True)
-    selected_at: datetime
+    category_id: int = Field(foreign_key="category.id", primary_key=True)
+    selected_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
 
 
 class NewspaperCategory(SQLModel, table=True):
     newspaper_id: uuid.UUID = Field(foreign_key="newspaper.id", primary_key=True)
-    category_id: uuid.UUID = Field(foreign_key="category.id", primary_key=True)
+    category_id: int = Field(foreign_key="category.id", primary_key=True)
 
 
 
@@ -178,3 +178,11 @@ class NewPassword(SQLModel):
 
 
 
+# Function to populate Category table with all CategoryEnum values
+def populate_categories(session: Session):
+    for category in CategoryEnum:
+        existing_category = session.exec(select(Category).where(Category.name == category.value)).first()
+        if not existing_category:
+            new_category = Category(name=category.value)  # Store as string
+            session.add(new_category)
+    session.commit()

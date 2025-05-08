@@ -1,10 +1,11 @@
+from datetime import datetime,time
 import uuid
 from typing import Any
 
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
-from app.models import User, UserCreate, UserUpdate
+from app.models import User, UserCreate, UserUpdate, Alarm, FrequencyEnum, DayOfWeekEnum
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
@@ -14,7 +15,23 @@ def create_user(*, session: Session, user_create: UserCreate) -> User:
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
+
+    # Create default alarm for the new user
+    default_alarm = Alarm(
+        user_id=db_obj.id,
+        frequency=FrequencyEnum.NONE,  # Set default frequency
+        day_of_week=DayOfWeekEnum.MONDAY,  # Set default day of week
+        day_of_month=1,
+        receive_time=datetime.combine(datetime.min, time(hour=9, minute=0)),  # Use dummy date
+        email_on=False,  # Enable email notifications by default
+        kakao_on=False,
+        slack_on=False
+    )
+    session.add(default_alarm)
+    session.commit()
+
     return db_obj
+
 
 
 def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> Any:

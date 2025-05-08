@@ -1,5 +1,5 @@
 import uuid
-from typing import Any
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, delete, func, select
@@ -22,6 +22,9 @@ from app.models import (
     UsersPublic,
     UserUpdate,
     UserUpdateMe,
+    UserCategory,
+    CategoryEnum,
+    Category,
 )
 from app.utils import generate_new_account_email, send_email
 
@@ -222,3 +225,102 @@ def delete_user(
     session.delete(user)
     session.commit()
     return Message(message="User deleted successfully")
+
+
+@router.get("/{user_id}/categories", response_model=List[str])
+def get_user_categories(user_id: uuid.UUID, session: SessionDep) -> List[str]:
+    """
+    Get preferred categories for a specific user by user ID.
+    """
+    statement = select(UserCategory).where(UserCategory.user_id == user_id)
+    user_categories = session.exec(statement).all()
+    
+    # 카테고리 이름 조회
+    category_names = []
+    for uc in user_categories:
+        category_statement = select(Category.name).where(Category.id == uc.category_id)
+        category_name = session.exec(category_statement).first()
+        if category_name:
+            category_names.append(category_name)
+    
+    return category_names
+
+
+@router.get("/me/categories", response_model=List[str])
+def get_my_categories(current_user: CurrentUser, session: SessionDep) -> List[str]:
+    """
+    Get preferred categories for the current user as a list of category names.
+    """
+    statement = select(UserCategory).where(UserCategory.user_id == current_user.id)
+    my_categories = session.exec(statement).all()
+    
+    # 카테고리 이름 조회
+    category_names = []
+    for uc in my_categories:
+        category_statement = select(Category.name).where(Category.id == uc.category_id)
+        category_name = session.exec(category_statement).first()
+        if category_name:
+            category_names.append(category_name)
+    
+    return category_names
+
+
+@router.post("/{user_id}/categories/toggle", response_model=Message)
+def toggle_user_category(user_id: uuid.UUID, category_name: str, session: SessionDep) -> Message:
+    """
+    Toggle category preference for a specific user by user ID.
+    """
+    # 카테고리 ID 조회
+    category = session.exec(select(Category).where(Category.name == category_name)).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Invalid category name.")
+    
+    # UserCategory 조회 및 토글
+    statement = select(UserCategory).where(UserCategory.user_id == user_id, UserCategory.category_id == category.id)
+    user_category = session.exec(statement).first()
+    if user_category:
+        session.delete(user_category)
+        message = "Category preference removed."
+    else:
+        new_user_category = UserCategory(user_id=user_id, category_id=category.id)
+        session.add(new_user_category)
+        message = "Category preference added."
+    session.commit()
+    return Message(message=message)
+
+
+@router.post("/me/categories/toggle", response_model=Message)
+def toggle_my_category(category_name: str, current_user: CurrentUser, session: SessionDep) -> Message:
+    """
+    Toggle category preference for the current user.
+    """
+    # 카테고리 ID 조회
+    category = session.exec(select(Category).where(Category.name == category_name)).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Invalid category name.")
+    
+    # UserCategory 조회 및 토글
+    statement = select(UserCategory).where(UserCategory.user_id == current_user.id, UserCategory.category_id == category.id)
+    my_category = session.exec(statement).first()
+    if my_category:
+        session.delete(my_category)
+        message = "Category preference removed."
+    else:
+        new_my_category = UserCategory(user_id=current_user.id, category_id=category.id)
+        session.add(new_my_category)
+        message = "Category preference added."
+    session.commit()
+    return Message(message=message)
+
+
+@router.get("/category/{category_id}")
+def get_category_name(category_id: int, session: SessionDep):
+    # Category 테이블에서 category_id에 해당하는 name 조회
+    statement = select(Category.name).where(Category.id == category_id)
+    result = session.exec(statement).first()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    return {"name": result}
+
