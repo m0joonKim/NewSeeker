@@ -1,17 +1,119 @@
 import uuid
-
-from pydantic import EmailStr
+from typing import Optional, List
+from datetime import datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from pydantic import ConfigDict, EmailStr
+from sqlalchemy import TEXT,Enum
 from sqlmodel import Field, Relationship, SQLModel
 
-
+ktc = ZoneInfo("Asia/Seoul")
 # Shared properties
+
+
+
+#===============================================================
 class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    email: EmailStr = Field(unique=True, index=True, max_length=100)
     is_active: bool = True
     is_superuser: bool = False
-    full_name: str | None = Field(default=None, max_length=255)
+    full_name: str | None = Field(default=None, max_length=100)
+
+# Database model, database table inferred from class name
+class User(UserBase, table=True):#USERBASE 상속
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    hashed_password: str = Field(max_length=128)
+    createAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
+    updateAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
+    alarm: list["Alarm"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
+
+class FrequencyEnum(str, Enum):
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    NONE = None
+
+class DayOfWeekEnum(str, Enum):
+    MONDAY = "monday"
+    TUESDAY = "tuesday"
+    WEDNESDAY = "wednesday"
+    THURSDAY = "thursday"
+    FRIDAY = "friday"
+    SATURDAY = "saturday"
 
 
+class Alarm(SQLModel, table=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="user.id",unique=True)
+    frequency: Optional[int] = None
+    day_of_week: Optional[int] = None
+    frequency: Optional[FrequencyEnum] = Field(default=FrequencyEnum.NONE)
+    day_of_week: Optional[DayOfWeekEnum] = Field(default=DayOfWeekEnum.MONDAY)
+    day_of_month: Optional[int] = None
+    receive_time: Optional[datetime] = None
+    email_on: bool = Field(default=False)
+    kakao_on: bool = Field(default=False)
+    slack_on: bool = Field(default=False)
+    user: User = Relationship(back_populates="alarm")
+
+
+class Newspaper(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    title: str = Field(max_length=150)
+    summary: str = Field(max_length=300)
+    contents: str = Field(sa_column=TEXT)
+    data: datetime 
+    author: str = Field(max_length=100)
+    source: str = Field(max_length=100)
+    link: str = Field(max_length=200)
+
+
+class CategoryEnum(str, Enum):
+    AI_ML = "ai_ml"
+    DATA_SCIENCE = "data_science"
+    CYBERSECURITY = "cybersecurity"
+    CLOUD_COMPUTING = "cloud_computing"
+    DEVOPS = "devops"
+    BLOCKCHAIN = "blockchain"
+    IOT = "iot"
+    EDGE_COMPUTING = "edge_computing"
+    VR_AR_METAVERSE = "vr_ar_metaverse"
+    QUANTUM_COMPUTING = "quantum_computing"
+    PROGRAMMING_LANGUAGES = "programming_languages"
+    SOFTWARE_ARCHITECTURE = "software_architecture"
+    DEVELOPER_TOOLS = "developer_tools"
+    BIG_DATA = "big_data"
+    OPEN_SOURCE = "open_source"
+    UX_UI = "ux_ui"
+    MOBILE_WEB_DEVELOPMENT = "mobile_web_development"
+    NETWORKING = "networking"
+    ROBOTICS = "robotics"
+    FINTECH = "fintech"
+    ETC = "etc"
+    #프로젝트 구체화 후 수정 필요
+
+
+class Category(SQLModel, table=True):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: CategoryEnum
+    # name: int
+
+
+class UserCategory(SQLModel, table=True):
+    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
+    category_id: uuid.UUID = Field(foreign_key="category.id", primary_key=True)
+    selected_at: datetime
+
+
+class NewspaperCategory(SQLModel, table=True):
+    newspaper_id: uuid.UUID = Field(foreign_key="newspaper.id", primary_key=True)
+    category_id: uuid.UUID = Field(foreign_key="category.id", primary_key=True)
+
+
+
+#=============================schema==================================
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=40)
@@ -39,11 +141,7 @@ class UpdatePassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=40)
 
 
-# Database model, database table inferred from class name
-class User(UserBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    hashed_password: str
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
+
 
 
 # Properties to return via API, id is always required
@@ -55,41 +153,6 @@ class UsersPublic(SQLModel):
     data: list[UserPublic]
     count: int
 
-
-# Shared properties
-class ItemBase(SQLModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
-
-
-# Properties to receive on item creation
-class ItemCreate(ItemBase):
-    pass
-
-
-# Properties to receive on item update
-class ItemUpdate(ItemBase):
-    title: str | None = Field(default=None, min_length=1, max_length=255)  # type: ignore
-
-
-# Database model, database table inferred from class name
-class Item(ItemBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    owner_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
-    )
-    owner: User | None = Relationship(back_populates="items")
-
-
-# Properties to return via API, id is always required
-class ItemPublic(ItemBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-
-
-class ItemsPublic(SQLModel):
-    data: list[ItemPublic]
-    count: int
 
 
 # Generic message
@@ -111,3 +174,7 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+
+
