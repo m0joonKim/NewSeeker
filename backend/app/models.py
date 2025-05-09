@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pydantic import ConfigDict, EmailStr
@@ -51,7 +51,7 @@ class Alarm(SQLModel, table=True):
     frequency: Optional[FrequencyEnum] = Field(default=FrequencyEnum.NONE)
     day_of_week: Optional[DayOfWeekEnum] = Field(default=DayOfWeekEnum.MONDAY)
     day_of_month: Optional[int] = None
-    receive_time: Optional[datetime] = None
+    receive_time: Optional[time] = None
     email_on: bool = Field(default=False)
     kakao_on: bool = Field(default=False)
     slack_on: bool = Field(default=False)
@@ -63,10 +63,11 @@ class Newspaper(SQLModel, table=True):
     title: str = Field(max_length=150)
     summary: str = Field(max_length=300)
     contents: str = Field(sa_column=TEXT)
-    data: datetime 
+    date: datetime
     author: str = Field(max_length=100)
     source: str = Field(max_length=100)
     link: str = Field(max_length=200)
+    hits: int = Field(default=0)
 
 
 class CategoryEnum(str, Enum):
@@ -110,6 +111,31 @@ class UserCategory(SQLModel, table=True):
 class NewspaperCategory(SQLModel, table=True):
     newspaper_id: int = Field(foreign_key="newspaper.id", primary_key=True)
     category_id: int = Field(foreign_key="category.id", primary_key=True)
+
+
+
+class UserNewspaperSave(SQLModel, table=True):
+    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
+    newspaper_id: int = Field(primary_key=True)
+    save_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
+    title: str = Field(max_length=150)
+    summary: str = Field(max_length=300)
+    link: str = Field(max_length=200)
+    
+
+
+class PreferenceEnum(str, Enum):
+    LIKE = "like"
+    DISLIKE = "dislike"
+    NONE = "none"
+
+class UserNewspaperPreference(SQLModel, table=True):
+    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
+    newspaper_id: int = Field(foreign_key="newspaper.id", primary_key=True)
+    preference: PreferenceEnum
+    update_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
+
+
 
 
 
@@ -186,3 +212,4 @@ def populate_categories(session: Session):
             new_category = Category(name=category.value)  # Store as string
             session.add(new_category)
     session.commit()
+

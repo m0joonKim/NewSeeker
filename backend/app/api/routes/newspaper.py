@@ -1,10 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlmodel import select
 from typing import List
 from app.api.deps import SessionDep
-from app.models import Message, NewspaperCategory, Newspaper, Category
+from app.models import Message, NewspaperCategory, Newspaper, Category, UserNewspaperPreference
 
 router = APIRouter(prefix="/newspapers", tags=["newspapers"])
+
+@router.get("/", response_model=List[Newspaper])
+def get_all_newspapers(session: SessionDep) -> List[Newspaper]:
+    """
+    Get a list of all newspapers.
+    """
+    newspapers = session.exec(select(Newspaper)).all()
+    return newspapers
 
 @router.post("/create", response_model=Newspaper)
 def create_newspaper(newspaper: Newspaper, session: SessionDep) -> Newspaper:
@@ -18,46 +27,69 @@ def create_newspaper(newspaper: Newspaper, session: SessionDep) -> Newspaper:
     session.refresh(newspaper)
     return newspaper
 
-@router.get("/{newspaper_id}/categories", response_model=List[str])
-def get_newspaper_categories(newspaper_id: int, session: SessionDep) -> List[str]:
+@router.get("/{newspaper_id}", response_model=Newspaper)
+def get_newspaper_by_id(newspaper_id: int, session: SessionDep) -> Newspaper:
     """
-    Get categories for a specific newspaper by newspaper ID.
+    Get a newspaper by its ID.
     """
-    statement = select(NewspaperCategory).where(NewspaperCategory.newspaper_id == newspaper_id)
-    newspaper_categories = session.exec(statement).all()
-    
-    # 카테고리 이름 조회
-    category_names = []
-    for nc in newspaper_categories:
-        category_statement = select(Category.name).where(Category.id == nc.category_id)
-        category_name = session.exec(category_statement).first()
-        if category_name:
-            category_names.append(category_name)
-    
-    return category_names
+    newspaper = session.exec(select(Newspaper).where(Newspaper.id == newspaper_id)).first()
+    if not newspaper:
+        raise HTTPException(status_code=404, detail="Newspaper not found")
+    return newspaper
+
+@router.put("/{newspaper_id}", response_model=Newspaper)
+def update_newspaper(newspaper_id: int, updated_data: Newspaper, session: SessionDep) -> Newspaper:
+    """
+    Update a newspaper by its ID.
+    """
+    newspaper = session.exec(select(Newspaper).where(Newspaper.id == newspaper_id)).first()
+    if not newspaper:
+        raise HTTPException(status_code=404, detail="Newspaper not found")
+    updated_data.id = newspaper_id  # Ensure the ID remains the same
+    session.merge(updated_data)
+    session.commit()
+    session.refresh(updated_data)
+    return updated_data
+
+@router.delete("/{newspaper_id}", response_model=Message)
+def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
+    """
+    Delete a newspaper by its ID, ensuring related NewspaperCategory entries are deleted first.
+    """
+    # Delete related NewspaperCategory entries first
+    session.exec(delete(NewspaperCategory).where(NewspaperCategory.newspaper_id == newspaper_id))
+    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.newspaper_id == newspaper_id))
+    newspaper = session.exec(select(Newspaper).where(Newspaper.id == newspaper_id)).first()
+    if not newspaper:
+        raise HTTPException(status_code=404, detail="Newspaper not found")
+    session.delete(newspaper)
+    session.commit()
+    return Message(message="Newspaper and related categories deleted successfully")
 
 
-@router.post("/{newspaper_id}/categories/toggle", response_model=Message)
-def toggle_newspaper_category(newspaper_id: int, category_name: str, session: SessionDep) -> Message:
+@router.get("/{category_name}", response_model=List[Newspaper])
+def get_newspapers_by_category_name(category_name: str, session: SessionDep) -> List[Newspaper]:
     """
-    Toggle category for a specific newspaper by newspaper ID.
+    Get a list of newspapers that belong to a specific category by category name.
     """
-    # 카테고리 ID 조회
     category = session.exec(select(Category).where(Category.name == category_name)).first()
     if not category:
-        raise HTTPException(status_code=400, detail="Invalid category name.")
-    
-    # NewspaperCategory 조회 및 토글
-    statement = select(NewspaperCategory).where(NewspaperCategory.newspaper_id == newspaper_id, NewspaperCategory.category_id == category.id)
-    newspaper_category = session.exec(statement).first()
-    if newspaper_category:
-        session.delete(newspaper_category)
-        message = "Category preference removed."
-    else:
-        new_newspaper_category = NewspaperCategory(newspaper_id=newspaper_id, category_id=category.id)
-        session.add(new_newspaper_category)
-        message = "Category preference added."
-    session.commit()
-    return Message(message=message)
+        raise HTTPException(status_code=404, detail="Category not found")
+    statement = select(Newspaper).join(NewspaperCategory).where(NewspaperCategory.category_id == category.id)
+    newspapers = session.exec(statement).all()
+    return newspapers
 
+
+@router.patch("/{newspaper_id}/increment_hits", response_model=Message)
+def increment_newspaper_hits(newspaper_id: int, session: SessionDep) -> Message:
+    """
+    Increment the hits of a newspaper by 1 when accessed by a user.
+    """
+    newspaper = session.exec(select(Newspaper).where(Newspaper.id == newspaper_id)).first()
+    if not newspaper:
+        raise HTTPException(status_code=404, detail="Newspaper not found")
+    newspaper.hits += 1
+    session.add(newspaper)
+    session.commit()
+    return Message(message="Newspaper hits incremented successfully")
 

@@ -2,10 +2,16 @@ import sentry_sdk
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
+from sqlalchemy import Column, Integer
+import requests
 
 from app.api.main import api_router
 from app.core.config import settings
-from app.api.routes import newspaper, category
+from app.api.routes import newspaper, category, alarm, interactions, scheduler_control
+from app.models import Newspaper
+
+# Import scheduler to ensure it runs
+import app.scheduler
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -34,3 +40,7 @@ if settings.all_cors_origins:
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(newspaper.router)
 app.include_router(category.router)
+app.include_router(alarm.router)
+app.include_router(interactions.router)
+app.include_router(scheduler_control.router)
+

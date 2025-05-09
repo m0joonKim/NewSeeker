@@ -25,22 +25,20 @@ from app.models import (
     UserCategory,
     CategoryEnum,
     Category,
+    Alarm,
+    UserNewspaperSave,
+    UserNewspaperPreference,
 )
 from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get(
-    "/",
-    dependencies=[Depends(get_current_active_superuser)],
-    response_model=UsersPublic,
-)
+@router.get("/", dependencies=[Depends(get_current_active_superuser)], response_model=UsersPublic)
 def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     """
     Retrieve users.
     """
-
     count_statement = select(func.count()).select_from(User)
     count = session.exec(count_statement).one()
 
@@ -50,31 +48,92 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     return UsersPublic(data=users, count=count)
 
 
-@router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
-)
-def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+@router.get("/{user_id}", response_model=UserPublic)
+def get_user_by_id(user_id: uuid.UUID, session: SessionDep) -> UserPublic:
     """
-    Create new user.
+    Get a user by their ID.
+    """
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.post("/create", response_model=UserPublic)
+def create_user(user: UserCreate, session: SessionDep) -> UserPublic:
+    """
+    Create a new user.
+    """
+    db_user = session.exec(select(User).where(User.email == user.email)).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@router.put("/{user_id}", response_model=UserPublic)
+def update_user(user_id: uuid.UUID, user_update: UserUpdate, session: SessionDep) -> UserPublic:
+    """
+    Update a user by their ID.
+    """
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_data = user_update.dict(exclude_unset=True)
+    for key, value in user_data.items():
+        setattr(user, key, value)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@router.delete("/{user_id}", response_model=Message)
+def delete_user(user_id: uuid.UUID, session: SessionDep) -> Message:
+    """
+    Delete a user by their ID, including related entries in UserCategory, Alarm, UserNewspaperSave, and UserNewspaperPreference.
+    """
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Delete related UserCategory entries
+    session.exec(delete(UserCategory).where(UserCategory.user_id == user_id))
+    # Delete related Alarm entries
+    session.exec(delete(Alarm).where(Alarm.user_id == user_id))
+    # Delete related UserNewspaperSave entries
+    session.exec(delete(UserNewspaperSave).where(UserNewspaperSave.user_id == user_id))
+    # Delete related UserNewspaperPreference entries
+    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.user_id == user_id))
+    # Delete the user
+    session.delete(user)
+    session.commit()
+    return Message(message="User and related data deleted successfully")
+
+
+@router.post("/signup", response_model=UserPublic)
+def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+    """
+    Create new user without the need to be logged in.
     """
     user = crud.get_user_by_email(session=session, email=user_in.email)
     if user:
         raise HTTPException(
             status_code=400,
-            detail="The user with this email already exists in the system.",
+            detail="The user with this email already exists in the system",
         )
-
-    user = crud.create_user(session=session, user_create=user_in)
-    if settings.emails_enabled and user_in.email:
-        email_data = generate_new_account_email(
-            email_to=user_in.email, username=user_in.email, password=user_in.password
-        )
-        send_email(
-            email_to=user_in.email,
-            subject=email_data.subject,
-            html_content=email_data.html_content,
-        )
+    user_create = UserCreate.model_validate(user_in)
+    user = crud.create_user(session=session, user_create=user_create)
     return user
+
+
+@router.get("/me", response_model=UserPublic)
+def read_user_me(current_user: CurrentUser) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
 
 
 @router.patch("/me", response_model=UserPublic)
@@ -84,7 +143,6 @@ def update_user_me(
     """
     Update own user.
     """
-
     if user_in.email:
         existing_user = crud.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != current_user.id:
@@ -119,197 +177,25 @@ def update_password_me(
     return Message(message="Password updated successfully")
 
 
-@router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
-    """
-    Get current user.
-    """
-    return current_user
-
-
 @router.delete("/me", response_model=Message)
 def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     """
-    Delete own user.
+    Delete own user, including related entries in UserCategory, Alarm, UserNewspaperSave, and UserNewspaperPreference.
     """
     if current_user.is_superuser:
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
+    # Delete related UserCategory entries
+    session.exec(delete(UserCategory).where(UserCategory.user_id == current_user.id))
+    # Delete related Alarm entries
+    session.exec(delete(Alarm).where(Alarm.user_id == current_user.id))
+    # Delete related UserNewspaperSave entries
+    session.exec(delete(UserNewspaperSave).where(UserNewspaperSave.user_id == current_user.id))
+    # Delete related UserNewspaperPreference entries
+    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.user_id == current_user.id))
+    # Delete the user
     session.delete(current_user)
     session.commit()
-    return Message(message="User deleted successfully")
-
-
-@router.post("/signup", response_model=UserPublic)
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
-    """
-    Create new user without the need to be logged in.
-    """
-    user = crud.get_user_by_email(session=session, email=user_in.email)
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this email already exists in the system",
-        )
-    user_create = UserCreate.model_validate(user_in)
-    user = crud.create_user(session=session, user_create=user_create)
-    return user
-
-
-@router.get("/{user_id}", response_model=UserPublic)
-def read_user_by_id(
-    user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
-) -> Any:
-    """
-    Get a specific user by id.
-    """
-    user = session.get(User, user_id)
-    if user == current_user:
-        return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
-        )
-    return user
-
-
-@router.patch(
-    "/{user_id}",
-    dependencies=[Depends(get_current_active_superuser)],
-    response_model=UserPublic,
-)
-def update_user(
-    *,
-    session: SessionDep,
-    user_id: uuid.UUID,
-    user_in: UserUpdate,
-) -> Any:
-    """
-    Update a user.
-    """
-
-    db_user = session.get(User, user_id)
-    if not db_user:
-        raise HTTPException(
-            status_code=404,
-            detail="The user with this id does not exist in the system",
-        )
-    if user_in.email:
-        existing_user = crud.get_user_by_email(session=session, email=user_in.email)
-        if existing_user and existing_user.id != user_id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
-
-    db_user = crud.update_user(session=session, db_user=db_user, user_in=user_in)
-    return db_user
-
-
-@router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
-def delete_user(
-    session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
-) -> Message:
-    """
-    Delete a user.
-    """
-    user = session.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if user == current_user:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
-        )
-    session.exec(statement)  # type: ignore
-    session.delete(user)
-    session.commit()
-    return Message(message="User deleted successfully")
-
-#==============================================
-
-@router.get("/{user_id}/categories", response_model=List[str])
-def get_user_categories(user_id: uuid.UUID, session: SessionDep) -> List[str]:
-    """
-    Get preferred categories for a specific user by user ID.
-    """
-    statement = select(UserCategory).where(UserCategory.user_id == user_id)
-    user_categories = session.exec(statement).all()
-    
-    # 카테고리 이름 조회
-    category_names = []
-    for uc in user_categories:
-        category_statement = select(Category.name).where(Category.id == uc.category_id)
-        category_name = session.exec(category_statement).first()
-        if category_name:
-            category_names.append(category_name)
-    
-    return category_names
-
-
-@router.get("/me/categories", response_model=List[str])
-def get_my_categories(current_user: CurrentUser, session: SessionDep) -> List[str]:
-    """
-    Get preferred categories for the current user as a list of category names.
-    """
-    statement = select(UserCategory).where(UserCategory.user_id == current_user.id)
-    my_categories = session.exec(statement).all()
-    
-    # 카테고리 이름 조회
-    category_names = []
-    for uc in my_categories:
-        category_statement = select(Category.name).where(Category.id == uc.category_id)
-        category_name = session.exec(category_statement).first()
-        if category_name:
-            category_names.append(category_name)
-    
-    return category_names
-
-
-@router.post("/{user_id}/categories/toggle", response_model=Message)
-def toggle_user_category(user_id: uuid.UUID, category_name: str, session: SessionDep) -> Message:
-    """
-    Toggle category preference for a specific user by user ID.
-    """
-    # 카테고리 ID 조회
-    category = session.exec(select(Category).where(Category.name == category_name)).first()
-    if not category:
-        raise HTTPException(status_code=400, detail="Invalid category name.")
-    
-    # UserCategory 조회 및 토글
-    statement = select(UserCategory).where(UserCategory.user_id == user_id, UserCategory.category_id == category.id)
-    user_category = session.exec(statement).first()
-    if user_category:
-        session.delete(user_category)
-        message = "Category preference removed."
-    else:
-        new_user_category = UserCategory(user_id=user_id, category_id=category.id)
-        session.add(new_user_category)
-        message = "Category preference added."
-    session.commit()
-    return Message(message=message)
-
-
-@router.post("/me/categories/toggle", response_model=Message)
-def toggle_my_category(category_name: str, current_user: CurrentUser, session: SessionDep) -> Message:
-    """
-    Toggle category preference for the current user.
-    """
-    # 카테고리 ID 조회
-    category = session.exec(select(Category).where(Category.name == category_name)).first()
-    if not category:
-        raise HTTPException(status_code=400, detail="Invalid category name.")
-    
-    # UserCategory 조회 및 토글
-    statement = select(UserCategory).where(UserCategory.user_id == current_user.id, UserCategory.category_id == category.id)
-    my_category = session.exec(statement).first()
-    if my_category:
-        session.delete(my_category)
-        message = "Category preference removed."
-    else:
-        new_my_category = UserCategory(user_id=current_user.id, category_id=category.id)
-        session.add(new_my_category)
-        message = "Category preference added."
-    session.commit()
-    return Message(message=message)
+    return Message(message="User and related data deleted successfully")
 
