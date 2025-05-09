@@ -1,8 +1,8 @@
-"""Initial migration
+"""init
 
-Revision ID: abf608e60e7f
+Revision ID: 4ee79eda5c22
 Revises: 
-Create Date: 2025-05-08 19:14:58.199651
+Create Date: 2025-05-08 20:39:08.148990
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import sqlmodel.sql.sqltypes
 
 
 # revision identifiers, used by Alembic.
-revision = 'abf608e60e7f'
+revision = '4ee79eda5c22'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,7 +25,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('newspaper',
-    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sqlmodel.sql.sqltypes.AutoString(length=150), nullable=False),
     sa.Column('summary', sqlmodel.sql.sqltypes.AutoString(length=300), nullable=False),
     sa.Column('contents', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -62,7 +62,7 @@ def upgrade():
     sa.UniqueConstraint('user_id')
     )
     op.create_table('newspapercategory',
-    sa.Column('newspaper_id', sa.Uuid(), nullable=False),
+    sa.Column('newspaper_id', sa.Integer(), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['newspaper_id'], ['newspaper.id'], ),

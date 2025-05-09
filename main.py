@@ -1,5 +1,5 @@
 def main():
-    print("Hello from zsh!")
+    print("Hello from newseeker!")
 
 
 if __name__ == "__main__":

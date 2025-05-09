@@ -226,6 +226,7 @@ def delete_user(
     session.commit()
     return Message(message="User deleted successfully")
 
+#==============================================
 
 @router.get("/{user_id}/categories", response_model=List[str])
 def get_user_categories(user_id: uuid.UUID, session: SessionDep) -> List[str]:
@@ -311,16 +312,4 @@ def toggle_my_category(category_name: str, current_user: CurrentUser, session: S
         message = "Category preference added."
     session.commit()
     return Message(message=message)
-
-
-@router.get("/category/{category_id}")
-def get_category_name(category_id: int, session: SessionDep):
-    # Category 테이블에서 category_id에 해당하는 name 조회
-    statement = select(Category.name).where(Category.id == category_id)
-    result = session.exec(statement).first()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail="Category not found")
-    
-    return {"name": result}
 

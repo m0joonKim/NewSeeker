@@ -59,7 +59,7 @@ class Alarm(SQLModel, table=True):
 
 
 class Newspaper(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    id: int = Field(default=None, primary_key=True)
     title: str = Field(max_length=150)
     summary: str = Field(max_length=300)
     contents: str = Field(sa_column=TEXT)
@@ -108,7 +108,7 @@ class UserCategory(SQLModel, table=True):
 
 
 class NewspaperCategory(SQLModel, table=True):
-    newspaper_id: uuid.UUID = Field(foreign_key="newspaper.id", primary_key=True)
+    newspaper_id: int = Field(foreign_key="newspaper.id", primary_key=True)
     category_id: int = Field(foreign_key="category.id", primary_key=True)
 
 
