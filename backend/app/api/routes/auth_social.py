@@ -21,11 +21,7 @@ oauth = OAuth()
 @router.get("/")
 async def public(request: Request):
     """메인 페이지"""
-    user = request.session.get('user')
-    if user:
-        name = user.get('name')
-        return HTMLResponse(f'<p>Hello {name}!</p><a href=/api/auth/logout>Logout</a>')
-    return HTMLResponse('<a href=/api/auth/google/login>Login with Google</a>')
+    return templates.TemplateResponse("main.html", {"request": request})
 
 @router.get("/logout")
 async def logout(request: Request):

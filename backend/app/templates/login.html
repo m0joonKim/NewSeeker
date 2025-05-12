@@ -153,24 +153,25 @@
             e.preventDefault();
             
             try {
-                const response = await fetch('/api/users/login', {
+                const formData = new URLSearchParams();
+                formData.append('username', document.getElementById('email').value);
+                formData.append('password', document.getElementById('password').value);
+            
+                const response = await fetch('/api/login/access-token', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: JSON.stringify({
-                        email: document.getElementById('email').value,
-                        password: document.getElementById('password').value
-                    })
+                    body: formData
                 });
-
+            
                 const data = await response.json();
-
+            
                 if (response.ok) {
                     // 로그인 성공 시 토큰 저장
                     localStorage.setItem('token', data.access_token);
                     // 메인 페이지로 이동
-                    window.location.href = '/';
+                    window.location.href = '/api/auth/';
                 } else {
                     // 에러 메시지 표시
                     document.getElementById('errorMessage').textContent = data.detail || '로그인에 실패했습니다.';

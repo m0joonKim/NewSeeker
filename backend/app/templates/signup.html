@@ -121,7 +121,7 @@
 
                 if (response.ok) {
                     // 회원가입 성공 시 로그인 페이지로 이동
-                    window.location.href = '/api/auth/login';
+                    window.location.href = '/api/auth/test-login';
                 } else {
                     // 서버에서 오는 422 등 에러 메시지 처리
                     if (response.status === 422 && data.detail) {
