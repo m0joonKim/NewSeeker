@@ -93,23 +93,14 @@ def update_user(user_id: uuid.UUID, user_update: UserUpdate, session: SessionDep
 @router.delete("/{user_id}", response_model=Message)
 def delete_user(user_id: uuid.UUID, session: SessionDep) -> Message:
     """
-    Delete a user by their ID, including related entries in UserCategory, Alarm, UserNewspaperSave, and UserNewspaperPreference.
+    Delete a user by their ID.
     """
     user = session.exec(select(User).where(User.id == user_id)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Delete related UserCategory entries
-    session.exec(delete(UserCategory).where(UserCategory.user_id == user_id))
-    # Delete related Alarm entries
-    session.exec(delete(Alarm).where(Alarm.user_id == user_id))
-    # Delete related UserNewspaperSave entries
-    session.exec(delete(UserNewspaperSave).where(UserNewspaperSave.user_id == user_id))
-    # Delete related UserNewspaperPreference entries
-    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.user_id == user_id))
-    # Delete the user
     session.delete(user)
     session.commit()
-    return Message(message="User and related data deleted successfully")
+    return Message(message="User deleted successfully")
 
 
 @router.post("/signup", response_model=UserPublic)
@@ -180,22 +171,13 @@ def update_password_me(
 @router.delete("/me", response_model=Message)
 def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     """
-    Delete own user, including related entries in UserCategory, Alarm, UserNewspaperSave, and UserNewspaperPreference.
+    Delete own user.
     """
     if current_user.is_superuser:
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
-    # Delete related UserCategory entries
-    session.exec(delete(UserCategory).where(UserCategory.user_id == current_user.id))
-    # Delete related Alarm entries
-    session.exec(delete(Alarm).where(Alarm.user_id == current_user.id))
-    # Delete related UserNewspaperSave entries
-    session.exec(delete(UserNewspaperSave).where(UserNewspaperSave.user_id == current_user.id))
-    # Delete related UserNewspaperPreference entries
-    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.user_id == current_user.id))
-    # Delete the user
     session.delete(current_user)
     session.commit()
-    return Message(message="User and related data deleted successfully")
+    return Message(message="User deleted successfully")
 

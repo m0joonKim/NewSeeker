@@ -58,17 +58,14 @@ def update_newspaper(newspaper_id: int, updated_data: Newspaper, session: Sessio
 @router.delete("/{newspaper_id}", response_model=Message)
 def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
     """
-    Delete a newspaper by its ID, ensuring related NewspaperCategory entries are deleted first.
+    Delete a newspaper by its ID.
     """
-    # Delete related NewspaperCategory entries first
-    session.exec(delete(NewspaperCategory).where(NewspaperCategory.newspaper_id == newspaper_id))
-    session.exec(delete(UserNewspaperPreference).where(UserNewspaperPreference.newspaper_id == newspaper_id))
     newspaper = session.exec(select(Newspaper).where(Newspaper.id == newspaper_id)).first()
     if not newspaper:
         raise HTTPException(status_code=404, detail="Newspaper not found")
     session.delete(newspaper)
     session.commit()
-    return Message(message="Newspaper and related categories deleted successfully")
+    return Message(message="Newspaper deleted successfully")
 
 
 @router.get("/{category_name}", response_model=List[Newspaper])

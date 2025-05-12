@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT 토큰 검증</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .verify-box {
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+        }
+        .token-box {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background-color: #1976D2;
+        }
+        .user-info {
+            text-align: left;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="verify-box">
+            <h2>JWT 토큰 검증</h2>
+            <div>
+                <h3>토큰:</h3>
+                <div class="token-box" id="token"></div>
+            </div>
+            <button class="button" onclick="verifyToken()">토큰 검증하기</button>
+            <div id="result" class="result-box"></div>
+            <div id="userInfo" class="user-info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // URL에서 토큰 파라미터 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        // 토큰 표시
+        if (token) {
+            document.getElementById('token').textContent = token;
+        } else {
+            document.getElementById('token').textContent = '토큰이 없습니다.';
+        }
+
+        // 토큰 검증 함수
+        async function verifyToken() {
+            const resultDiv = document.getElementById('result');
+            const userInfoDiv = document.getElementById('userInfo');
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result-box success';
+                    resultDiv.innerHTML = '<h3>토큰 검증 성공!</h3>';
+                    
+                    // 사용자 정보 표시
+                    userInfoDiv.style.display = 'block';
+                    userInfoDiv.innerHTML = `
+                        <h3>사용자 정보:</h3>
+                        <p><strong>ID:</strong> ${data.user_id}</p>
+                        <p><strong>이름:</strong> ${data.full_name}</p>
+                        <p><strong>이메일:</strong> ${data.email || '없음'}</p>
+                        <p><strong>로그인 방식:</strong> ${data.provider}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result-box error';
+                    resultDiv.innerHTML = `<h3>토큰 검증 실패</h3><p>${data.detail}</p>`;
+                    userInfoDiv.style.display = 'none';
+                }
+            } catch (error) {
+                resultDiv.className = 'result-box error';
+                resultDiv.innerHTML = `<h3>오류 발생</h3><p>${error.message}</p>`;
+                userInfoDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 
