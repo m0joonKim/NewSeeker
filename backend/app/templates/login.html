@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .login-box {
+            text-align: center;
+            padding: 40px 32px;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            max-width: 420px;
+            width: 100%;
+            background: #fff;
+        }
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        .submit-btn {
+            background-color: #66bb6a;
+            color: white;
+            padding: 12px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 18px;
+            margin-bottom: 18px;
+        }
+        .submit-btn:hover {
+            background-color: #57a05a;
+        }
+        .error-message {
+            color: red;
+            margin-top: 10px;
+            min-height: 24px;
+        }
+        .signup-link {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+        .signup-link a {
+            color: #1a73e8;
+            text-decoration: underline;
+        }
+        .social-login {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #eee;
+        }
+        .social-login h3 {
+            margin-bottom: 18px;
+            font-size: 18px;
+        }
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px 0;
+            margin: 0 0 14px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .kakao-btn {
+            background-color: #FEE500;
+            color: #181600;
+            border: 1px solid #e6c200;
+        }
+        .kakao-btn:hover {
+            background-color: #ffe14a;
+        }
+        .google-btn {
+            background-color: #4285F4;
+            color: white;
+            border: 1px solid #357ABD;
+        }
+        .google-btn:hover {
+            background-color: #357ABD;
+        }
+        .social-btn img {
+            width: 22px;
+            height: 22px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <h2>로그인</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="submit-btn">로그인</button>
+                <div id="errorMessage" class="error-message"></div>
+            </form>
+            <div class="signup-link">
+                계정이 없으신가요? <a href="/api/auth/test-signup">회원가입</a>
+            </div>
+            <div class="social-login">
+                <h3>소셜 로그인</h3>
+                <a href="/api/auth/kakao/login" class="social-btn kakao-btn">
+                    <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png" alt="카카오">
+                    카카오로 로그인
+                </a>
+                <a href="/api/auth/google/login" class="social-btn google-btn">
+                    <img src="https://www.google.com/favicon.ico" alt="구글">
+                    구글로 로그인
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 로그인 성공 시 토큰 저장
+                    localStorage.setItem('token', data.access_token);
+                    // 메인 페이지로 이동
+                    window.location.href = '/';
+                } else {
+                    // 에러 메시지 표시
+                    document.getElementById('errorMessage').textContent = data.detail || '로그인에 실패했습니다.';
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = '서버 오류가 발생했습니다.';
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -4,10 +4,11 @@ from datetime import datetime, time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from pydantic import ConfigDict, EmailStr
-from sqlalchemy import TEXT
+from sqlalchemy import TEXT, Column, ForeignKey
 from enum import Enum
 from sqlmodel import Field, Relationship, SQLModel, Session
 from sqlalchemy.sql import select
+from sqlalchemy.dialects.postgresql import UUID
 
 ktc = ZoneInfo("Asia/Seoul")
 # Shared properties
@@ -35,7 +36,22 @@ class User(UserBase, table=True):#USERBASE 상속
     hashed_password: str | None = Field(default=None, max_length=128)
     createAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
     updateAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
-    alarm: list["Alarm"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
+    alarm: list["Alarm"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete", "passive_deletes": True}
+    )
+    user_categories: list["UserCategory"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True}
+    )
+    user_newspaper_preferences: list["UserNewspaperPreference"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True}
+    )
+    user_newspaper_saves: list["UserNewspaperSave"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True}
+    )
 
 class FrequencyEnum(str, Enum):
     DAILY = "daily"
@@ -53,9 +69,10 @@ class DayOfWeekEnum(str, Enum):
 
 
 class Alarm(SQLModel, table=True):
-    # model_config = ConfigDict(arbitrary_types_allowed=True)
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: uuid.UUID = Field(foreign_key="user.id",unique=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), unique=True)
+    )
     frequency: Optional[FrequencyEnum] = Field(default=FrequencyEnum.NONE)
     day_of_week: Optional[DayOfWeekEnum] = Field(default=DayOfWeekEnum.MONDAY)
     day_of_month: Optional[int] = None
@@ -63,7 +80,10 @@ class Alarm(SQLModel, table=True):
     email_on: bool = Field(default=False)
     kakao_on: bool = Field(default=False)
     slack_on: bool = Field(default=False)
-    user: User = Relationship(back_populates="alarm")
+    user: User = Relationship(
+        back_populates="alarm",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 
 class NewsPaperType(str, Enum):
@@ -81,6 +101,14 @@ class Newspaper(SQLModel, table=True):
     link: str = Field(max_length=200)
     hits: int = Field(default=0)
     type: NewsPaperType
+    newspaper_categories: list["NewspaperCategory"] = Relationship(
+        back_populates="newspaper",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True}
+    )
+    user_newspaper_preferences: list["UserNewspaperPreference"] = Relationship(
+        back_populates="newspaper",
+        sa_relationship_kwargs={"cascade": "all, delete", "passive_deletes": True}
+    )
 
 
 class CategoryEnum(str, Enum):
@@ -116,24 +144,42 @@ class Category(SQLModel, table=True):
 
 
 class UserCategory(SQLModel, table=True):
-    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    )
     category_id: int = Field(foreign_key="category.id", primary_key=True)
     selected_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
+    user: User = Relationship(
+        back_populates="user_categories",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 
 class NewspaperCategory(SQLModel, table=True):
-    newspaper_id: int = Field(foreign_key="newspaper.id", primary_key=True)
+    newspaper_id: int = Field(
+        sa_column=Column(ForeignKey("newspaper.id", ondelete="CASCADE"), primary_key=True)
+    )
     category_id: int = Field(foreign_key="category.id", primary_key=True)
+    newspaper: Newspaper = Relationship(
+        back_populates="newspaper_categories",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 
 
 class UserNewspaperSave(SQLModel, table=True):
-    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    )
     newspaper_id: int = Field(primary_key=True)
     save_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
     title: str = Field(max_length=150)
     summary: str = Field(max_length=300)
     link: str = Field(max_length=200)
+    user: User = Relationship(
+        back_populates="user_newspaper_saves",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
     
 
 
@@ -143,10 +189,22 @@ class PreferenceEnum(str, Enum):
     NONE = "none"
 
 class UserNewspaperPreference(SQLModel, table=True):
-    user_id: uuid.UUID = Field(foreign_key="user.id", primary_key=True)
-    newspaper_id: int = Field(foreign_key="newspaper.id", primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(UUID(as_uuid=True), ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    )
+    newspaper_id: int = Field(
+        sa_column=Column(ForeignKey("newspaper.id", ondelete="CASCADE"), primary_key=True)
+    )
     preference: PreferenceEnum
     update_at: datetime = Field(default_factory=lambda: datetime.now(ktc))
+    user: User = Relationship(
+        back_populates="user_newspaper_preferences",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
+    newspaper: Newspaper = Relationship(
+        back_populates="user_newspaper_preferences",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 
 

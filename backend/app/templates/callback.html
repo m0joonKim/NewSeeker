@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소셜 로그인 콜백</title>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .callback-box {
+            text-align: center;
+            padding: 24px 32px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            max-width: 600px;
+            width: 90%;
+            background: #fff;
+        }
+        .token-box {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.95em;
+        }
+        .success-message {
+            color: #4CAF50;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        .provider {
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .copy-btn {
+            margin-top: 10px;
+            padding: 6px 16px;
+            border: none;
+            background: #1976d2;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .copy-btn:active {
+            background: #145ea8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="callback-box">
+            <h2>소셜 로그인 콜백</h2>
+            <div class="success-message">{{ provider|default('') }} 로그인 성공!</div>
+            <div>
+                <h3>JWT 토큰:</h3>
+                <div class="token-box" id="token">
+                    {% if token %}
+                        {{ token }}
+                    {% else %}
+                        토큰이 없습니다.
+                    {% endif %}
+                </div>
+                <button class="copy-btn" onclick="copyToken()">토큰 복사</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function copyToken() {
+            const token = document.getElementById('token').textContent.trim();
+            if (token) {
+                navigator.clipboard.writeText(token).then(function() {
+                    alert('토큰이 복사되었습니다!');
+                }, function() {
+                    alert('복사 실패!');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
