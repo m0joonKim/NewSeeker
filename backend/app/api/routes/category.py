@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
 from app.api.deps import SessionDep, CurrentUser
-from app.models import Category, UserCategory, NewspaperCategory, Newspaper
+from app.models import Category, UserCategory, NewspaperCategory
 from typing import List
 import uuid
 from app.models import Message

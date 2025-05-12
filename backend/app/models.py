@@ -15,16 +15,24 @@ ktc = ZoneInfo("Asia/Seoul")
 
 
 #===============================================================
+class ProviderEnum(str, Enum):
+    LOCAL = "local"
+    GOOGLE = "google"
+    KAKAO = "kakao"
+
 class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=100)
+    email: EmailStr | None = Field(unique=True, index=True, max_length=100)
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=100)
+    provider: ProviderEnum = Field(default=ProviderEnum.LOCAL)
+    provider_id: str | None = Field(default=None, max_length=100)
+    profile_image: str | None = Field(default=None, max_length=200)
 
 # Database model, database table inferred from class name
 class User(UserBase, table=True):#USERBASE 상속
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    hashed_password: str = Field(max_length=128)
+    hashed_password: str | None = Field(default=None, max_length=128)
     createAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
     updateAt: datetime = Field(default_factory=lambda: datetime.now(ktc))
     alarm: list["Alarm"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
@@ -58,6 +66,10 @@ class Alarm(SQLModel, table=True):
     user: User = Relationship(back_populates="alarm")
 
 
+class NewsPaperType(str, Enum):
+    NEWS = "news"
+    PAPER = "paper"
+
 class Newspaper(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     title: str = Field(max_length=150)
@@ -68,6 +80,7 @@ class Newspaper(SQLModel, table=True):
     source: str = Field(max_length=100)
     link: str = Field(max_length=200)
     hits: int = Field(default=0)
+    type: NewsPaperType
 
 
 class CategoryEnum(str, Enum):

@@ -8,11 +8,15 @@ from app.models import Message, NewspaperCategory, Newspaper, Category, UserNews
 router = APIRouter(prefix="/newspapers", tags=["newspapers"])
 
 @router.get("/", response_model=List[Newspaper])
-def get_all_newspapers(session: SessionDep) -> List[Newspaper]:
+def get_all_newspapers(session: SessionDep, type: str = None) -> List[Newspaper]:
     """
     Get a list of all newspapers.
+    Optionally filter by type: 'news', 'paper', or None for all types.
     """
-    newspapers = session.exec(select(Newspaper)).all()
+    statement = select(Newspaper)
+    if type:
+        statement = statement.where(Newspaper.type == type)
+    newspapers = session.exec(statement).all()
     return newspapers
 
 @router.post("/create", response_model=Newspaper)
@@ -68,14 +72,17 @@ def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
 
 
 @router.get("/{category_name}", response_model=List[Newspaper])
-def get_newspapers_by_category_name(category_name: str, session: SessionDep) -> List[Newspaper]:
+def get_newspapers_by_category_name(category_name: str, session: SessionDep, type: str = None) -> List[Newspaper]:
     """
     Get a list of newspapers that belong to a specific category by category name.
+    Optionally filter by type: 'news', 'paper', or None for all types.
     """
     category = session.exec(select(Category).where(Category.name == category_name)).first()
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     statement = select(Newspaper).join(NewspaperCategory).where(NewspaperCategory.category_id == category.id)
+    if type:
+        statement = statement.where(Newspaper.type == type)
     newspapers = session.exec(statement).all()
     return newspapers
 

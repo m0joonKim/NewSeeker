@@ -2,7 +2,7 @@ from sqlmodel import Session, create_engine, select
 from datetime import datetime
 from app import crud
 from app.core.config import settings
-from app.models import User, UserCreate, populate_categories
+from app.models import ProviderEnum, User, UserCreate, populate_categories
 
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
 
@@ -29,6 +29,7 @@ def init_db(session: Session) -> None:
             email=settings.FIRST_SUPERUSER,
             password=settings.FIRST_SUPERUSER_PASSWORD,
             is_superuser=True,
+            provider=ProviderEnum.LOCAL,
         )
         user = crud.create_user(session=session, user_create=user_in)
     populate_categories(session)
