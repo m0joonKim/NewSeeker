@@ -75,7 +75,7 @@ oauth.register(
     }
 )
 @router.get('/{provider}/login/')
-async def login_by_oauth(request: Request, provider:str):
+async def login_by_oauth(request: Request, provider: ProviderEnum):
 	base_url = 'http://localhost:8000'
     # 우리가 만들어줄 callback 주소다. 인증이 완료되면 callback 주소가 호출된다.
 	redirect_uri = f'{base_url}/api/auth/{provider}/callback'
@@ -86,18 +86,18 @@ async def login_by_oauth(request: Request, provider:str):
 
 
 @router.get('/{provider}/callback', response_model=Token)
-async def callback_by_oauth(request: Request, provider: str, db: Session = Depends(get_db)):
+async def callback_by_oauth(request: Request, provider: ProviderEnum, db: Session = Depends(get_db)):
     token = await oauth.create_client(provider).authorize_access_token(request)
 
     # provider별 user_info 추출
-    if provider == 'google':
+    if provider == ProviderEnum.GOOGLE:
         user_info = {
             "id": token.get("sub") or token["userinfo"].get("sub"),
             "email": token["userinfo"].get("email"),
             "name": token["userinfo"].get("name"),
             "profile_image": token["userinfo"].get("picture"),
         }
-    elif provider == 'kakao':
+    elif provider == ProviderEnum.KAKAO:
         user_info_url = 'https://kapi.kakao.com/v2/user/me'
         user_headers = {"Authorization": f"Bearer {token['access_token']}"}
         async with httpx.AsyncClient() as client:

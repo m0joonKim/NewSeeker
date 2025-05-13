@@ -8,7 +8,7 @@ import requests
 
 from app.api.main import api_router
 from app.core.config import settings
-from app.api.routes import login, private, users, newspaper, category, alarm, interactions, utils, auth_social
+from app.api.routes import login, private, users, newspaper, category, alarm, interactions, utils, auth_social, stat
 
 # Import scheduler to ensure it runs
 # import app.scheduler
@@ -43,6 +43,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 app.include_router(auth_social.router, prefix="/api")
 app.include_router(newspaper.router, prefix="/api")
 app.include_router(category.router, prefix="/api")
+app.include_router(stat.router, prefix="/api")
 app.include_router(alarm.router, prefix="/api")
 app.include_router(interactions.router, prefix="/api")
 app.include_router(login.router, prefix="/api")

@@ -68,19 +68,30 @@ def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
     return Message(message="Newspaper deleted successfully")
 
 
-@router.get("/{category_name}", response_model=List[Newspaper])
-def get_newspapers_by_category_name(category_name: str, session: SessionDep, type: str = None) -> List[Newspaper]:
+@router.get("/{category_id}")
+def get_newspapers_by_category(category_id: int, session: SessionDep):
     """
     Get a list of newspapers that belong to a specific category by category name.
     Optionally filter by type: 'news', 'paper', or None for all types.
     """
-    category = session.exec(select(Category).where(Category.name == category_name)).first()
+    # 카테고리 존재 여부 확인
+    category = session.exec(select(Category).where(Category.id == category_id)).first()
     if not category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    statement = select(Newspaper).join(NewspaperCategory).where(NewspaperCategory.category_id == category.id)
-    if type:
-        statement = statement.where(Newspaper.type == type)
-    newspapers = session.exec(statement).all()
+        raise HTTPException(status_code=404, detail=f"Category with id {category_id} not found")
+    # 해당 카테고리의 뉴스페이퍼 ID 목록 조회
+    newspaper_ids = session.exec(
+        select(NewspaperCategory.newspaper_id)
+        .where(NewspaperCategory.category_id == category_id)
+    ).all()
+    if not newspaper_ids:
+        return []
+    # 뉴스페이퍼 상세 정보 조회
+    newspapers = session.exec(
+        select(Newspaper)
+        .where(Newspaper.id.in_(newspaper_ids))
+        .order_by(Newspaper.date.desc())
+    ).all()
+    
     return newspapers
 
 
