@@ -1,6 +1,7 @@
+from fastapi.routing import APIRoute
 import sentry_sdk
 from fastapi import FastAPI
-from fastapi.routing import APIRoute
+# from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import Column, Integer
@@ -10,8 +11,6 @@ from app.api.main import api_router
 from app.core.config import settings
 from app.api.routes import login, private, users, newspaper, category, alarm, interactions, utils, auth_social, stat
 
-# Import scheduler to ensure it runs
-# import app.scheduler
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

@@ -103,7 +103,7 @@ def dislike_newspaper_me(newspaper_id: int, current_user: CurrentUser, session: 
     return Message(message="Dislike status updated successfully")
 
 
-@router.post("/save/{user_id}/{newspaper_id}", response_model=Message)
+@router.post("{user_id}/save/{newspaper_id}", response_model=Message)
 def save_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Message:
     """
     Save a newspaper for a specific user.
@@ -133,7 +133,7 @@ def save_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Mes
     return Message(message="Newspaper saved successfully")
 
 
-@router.delete("/save/{user_id}/{newspaper_id}", response_model=Message)
+@router.delete("/{user_id}/save/{newspaper_id}", response_model=Message)
 def unsave_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Message:
     """
     Unsave a newspaper for a specific user.
@@ -152,7 +152,7 @@ def unsave_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> M
 
 
 
-@router.post("/like/{user_id}/{newspaper_id}", response_model=Message)
+@router.post("/{user_id}/like/{newspaper_id}", response_model=Message)
 def like_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Message:
     """
     Handle liking a newspaper by a user.
@@ -176,7 +176,7 @@ def like_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Mes
     return Message(message="Like status updated successfully")
 
 
-@router.post("/dislike/{user_id}/{newspaper_id}", response_model=Message)
+@router.post("/{user_id}/dislike/{newspaper_id}", response_model=Message)
 def dislike_newspaper(user_id: UUID, newspaper_id: int, session: SessionDep) -> Message:
     """
     Handle disliking a newspaper by a user.

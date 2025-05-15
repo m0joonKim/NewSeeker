@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
 from sqlmodel import select
-from typing import List
+from typing import List, Optional
 from app.api.deps import SessionDep
-from app.models import Message, NewspaperCategory, Newspaper, Category, UserNewspaperPreference
+from app.models import Message, NewsPaperType, NewspaperCategory, Newspaper, Category, UserNewspaperPreference
 
 router = APIRouter(prefix="/newspapers", tags=["newspapers"])
 
 @router.get("/", response_model=List[Newspaper])
-def get_all_newspapers(session: SessionDep, type: str = None) -> List[Newspaper]:
+def get_all_newspapers(session: SessionDep, type: Optional[NewsPaperType] = None) -> List[Newspaper]:
     """
     Get a list of all newspapers.
     Optionally filter by type: 'news', 'paper', or None for all types.
@@ -67,9 +67,8 @@ def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
     session.commit()
     return Message(message="Newspaper deleted successfully")
 
-
-@router.get("/{category_id}")
-def get_newspapers_by_category(category_id: int, session: SessionDep):
+@router.get("/by_category/{category_id}")
+def get_newspapers_by_category(category_id: int, session: SessionDep, type: Optional[NewsPaperType] = None):
     """
     Get a list of newspapers that belong to a specific category by category name.
     Optionally filter by type: 'news', 'paper', or None for all types.
@@ -86,11 +85,10 @@ def get_newspapers_by_category(category_id: int, session: SessionDep):
     if not newspaper_ids:
         return []
     # 뉴스페이퍼 상세 정보 조회
-    newspapers = session.exec(
-        select(Newspaper)
-        .where(Newspaper.id.in_(newspaper_ids))
-        .order_by(Newspaper.date.desc())
-    ).all()
+    statement = select(Newspaper).where(Newspaper.id.in_(newspaper_ids))
+    if type:
+        statement = statement.where(Newspaper.type == type)
+    newspapers = session.exec(statement.order_by(Newspaper.date.desc())).all()
     
     return newspapers
 

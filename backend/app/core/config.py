@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-here"
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "http://localhost:3000"
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
     BACKEND_CORS_ORIGINS: Annotated[
@@ -97,14 +97,15 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER_PASSWORD: str
 
     # Google OAuth2 settings
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/auth/google/callback"
+
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_CLIENT_URL", "")
 
     # Kakao OAuth2 settings
     KAKAO_CLIENT_ID: str = os.getenv("KAKAO_CLIENT_ID", "")
     KAKAO_CLIENT_SECRET: str = os.getenv("KAKAO_CLIENT_SECRET", "")
-    KAKAO_REDIRECT_URI: str = os.getenv("KAKAO_REDIRECT_URI", "http://localhost:8000/api/auth/kakao/callback")
+    KAKAO_REDIRECT_URI: str = os.getenv("KAKAO_REDIRECT_URI", "")
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
         if value == "changethis":
