@@ -66,6 +66,7 @@ class DayOfWeekEnum(str, Enum):
     THURSDAY = "thursday"
     FRIDAY = "friday"
     SATURDAY = "saturday"
+    SUNDAY = "sunday"
 
 
 class Alarm(SQLModel, table=True):

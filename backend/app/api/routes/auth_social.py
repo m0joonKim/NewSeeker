@@ -81,7 +81,7 @@ async def login_by_oauth(request: Request, provider: ProviderEnum):
     redirect_uri = f'{base_url}/api/auth/{provider}/callback'
     # redirect_uri = f'{base_url}/api/auth/{provider}/callback'
     
-    # callback 주소를 담아 oauth 제공사들에 맞게 redirect를 요청
+    # callback 주소를 담아 oauth 제공사들에 맞게 redirect를 요청g
     return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
 
 

@@ -17,45 +17,45 @@ def get_category_name(category_id: int, session: SessionDep):
     
     return {"name": category.name.value}
 
-@router.get("/user/me/categories", response_model=List[str])
-def get_my_categories(current_user: CurrentUser, session: SessionDep) -> List[str]:
-    """
-    Get preferred categories for the current user as a list of category names.
-    """
-    statement = select(UserCategory).where(UserCategory.user_id == current_user.id)
-    my_categories = session.exec(statement).all()
+# @router.get("/user/me/categories", response_model=List[str])
+# def get_my_categories(current_user: CurrentUser, session: SessionDep) -> List[str]:
+#     """
+#     Get preferred categories for the current user as a list of category names.
+#     """
+#     statement = select(UserCategory).where(UserCategory.user_id == current_user.id)
+#     my_categories = session.exec(statement).all()
     
-    # 카테고리 이름 조회
-    category_names = []
-    for uc in my_categories:
-        category = session.exec(select(Category).where(Category.id == uc.category_id)).first()
-        if category:
-            category_names.append(category.name.value)
+#     # 카테고리 이름 조회
+#     category_names = []
+#     for uc in my_categories:
+#         category = session.exec(select(Category).where(Category.id == uc.category_id)).first()
+#         if category:
+#             category_names.append(category.name.value)
     
-    return category_names
+#     return category_names
 
-@router.post("/user/me/categories/toggle", response_model=Message)
-def toggle_my_category(category_id: int, current_user: CurrentUser, session: SessionDep) -> Message:
-    """
-    Toggle category preference for the current user.
-    """
-    # 카테고리 ID 조회
-    category = session.exec(select(Category).where(Category.id == category_id)).first()
-    if not category:
-        raise HTTPException(status_code=404, detail=f"Category with id {category_id} not found")
+# @router.post("/user/me/categories/toggle", response_model=Message)
+# def toggle_my_category(category_id: int, current_user: CurrentUser, session: SessionDep) -> Message:
+#     """
+#     Toggle category preference for the current user.
+#     """
+#     # 카테고리 ID 조회
+#     category = session.exec(select(Category).where(Category.id == category_id)).first()
+#     if not category:
+#         raise HTTPException(status_code=404, detail=f"Category with id {category_id} not found")
     
-    # UserCategory 조회 및 토글
-    statement = select(UserCategory).where(UserCategory.user_id == current_user.id, UserCategory.category_id == category.id)
-    my_category = session.exec(statement).first()
-    if my_category:
-        session.delete(my_category)
-        message = "Category preference removed."
-    else:
-        new_my_category = UserCategory(user_id=current_user.id, category_id=category.id)
-        session.add(new_my_category)
-        message = "Category preference added."
-    session.commit()
-    return Message(message=message)
+#     # UserCategory 조회 및 토글
+#     statement = select(UserCategory).where(UserCategory.user_id == current_user.id, UserCategory.category_id == category.id)
+#     my_category = session.exec(statement).first()
+#     if my_category:
+#         session.delete(my_category)
+#         message = "Category preference removed."
+#     else:
+#         new_my_category = UserCategory(user_id=current_user.id, category_id=category.id)
+#         session.add(new_my_category)
+#         message = "Category preference added."
+#     session.commit()
+#     return Message(message=message)
 
 @router.get("/user/{user_id}/categories", response_model=List[str])
 def get_user_categories(user_id: uuid.UUID, session: SessionDep) -> List[str]:
@@ -78,6 +78,24 @@ def get_user_categories(user_id: uuid.UUID, session: SessionDep) -> List[str]:
             category_names.append(category.name.value)
     
     return category_names
+
+@router.get("/user/{user_id}/category_ids", response_model=List[int])
+def get_user_category_ids(user_id: uuid.UUID, session: SessionDep) -> List[int]:
+    """
+    Get preferred category IDs for a specific user by user ID.
+    """
+    # 유저 존재 여부 확인
+    user = session.exec(select(User).where(User.id == user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
+
+    statement = select(UserCategory).where(UserCategory.user_id == user_id)
+    user_categories = session.exec(statement).all()
+    
+    # 카테고리 ID 조회
+    category_ids = [uc.category_id for uc in user_categories]
+    
+    return category_ids
 
 @router.post("/user/{user_id}/categories/toggle", response_model=Message)
 def toggle_user_category(user_id: uuid.UUID, category_id: int, session: SessionDep) -> Message:

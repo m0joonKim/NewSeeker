@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
+from app.api.routes.category import get_newspaper_categories
 from sqlmodel import select
 from typing import List, Optional
 from app.api.deps import SessionDep
@@ -7,17 +8,7 @@ from app.models import Message, NewsPaperType, NewspaperCategory, Newspaper, Cat
 
 router = APIRouter(prefix="/newspapers", tags=["newspapers"])
 
-@router.get("/", response_model=List[Newspaper])
-def get_all_newspapers(session: SessionDep, type: Optional[NewsPaperType] = None) -> List[Newspaper]:
-    """
-    Get a list of all newspapers.
-    Optionally filter by type: 'news', 'paper', or None for all types.
-    """
-    statement = select(Newspaper)
-    if type:
-        statement = statement.where(Newspaper.type == type)
-    newspapers = session.exec(statement).all()
-    return newspapers
+
 
 @router.post("/create", response_model=Newspaper)
 def create_newspaper(newspaper: Newspaper, session: SessionDep) -> Newspaper:
@@ -67,30 +58,30 @@ def delete_newspaper(newspaper_id: int, session: SessionDep) -> Message:
     session.commit()
     return Message(message="Newspaper deleted successfully")
 
-@router.get("/by_category/{category_id}")
-def get_newspapers_by_category(category_id: int, session: SessionDep, type: Optional[NewsPaperType] = None):
-    """
-    Get a list of newspapers that belong to a specific category by category name.
-    Optionally filter by type: 'news', 'paper', or None for all types.
-    """
-    # 카테고리 존재 여부 확인
-    category = session.exec(select(Category).where(Category.id == category_id)).first()
-    if not category:
-        raise HTTPException(status_code=404, detail=f"Category with id {category_id} not found")
-    # 해당 카테고리의 뉴스페이퍼 ID 목록 조회
-    newspaper_ids = session.exec(
-        select(NewspaperCategory.newspaper_id)
-        .where(NewspaperCategory.category_id == category_id)
-    ).all()
-    if not newspaper_ids:
-        return []
-    # 뉴스페이퍼 상세 정보 조회
-    statement = select(Newspaper).where(Newspaper.id.in_(newspaper_ids))
-    if type:
-        statement = statement.where(Newspaper.type == type)
-    newspapers = session.exec(statement.order_by(Newspaper.date.desc())).all()
+# @router.get("/by_category/{category_id}")
+# def get_newspapers_by_category(category_id: int, session: SessionDep, type: Optional[NewsPaperType] = None):
+#     """
+#     Get a list of newspapers that belong to a specific category by category name.
+#     Optionally filter by type: 'news', 'paper', or None for all types.
+#     """
+#     # 카테고리 존재 여부 확인
+#     category = session.exec(select(Category).where(Category.id == category_id)).first()
+#     if not category:
+#         raise HTTPException(status_code=404, detail=f"Category with id {category_id} not found")
+#     # 해당 카테고리의 뉴스페이퍼 ID 목록 조회
+#     newspaper_ids = session.exec(
+#         select(NewspaperCategory.newspaper_id)
+#         .where(NewspaperCategory.category_id == category_id)
+#     ).all()
+#     if not newspaper_ids:
+#         return []
+#     # 뉴스페이퍼 상세 정보 조회
+#     statement = select(Newspaper).where(Newspaper.id.in_(newspaper_ids))
+#     if type:
+#         statement = statement.where(Newspaper.type == type)
+#     newspapers = session.exec(statement.order_by(Newspaper.date.desc())).all()
     
-    return newspapers
+#     return newspapers
 
 
 @router.patch("/{newspaper_id}/increment_hits", response_model=Message)
