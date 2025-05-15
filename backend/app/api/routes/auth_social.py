@@ -76,12 +76,10 @@ oauth.register(
 )
 @router.get('/{provider}/login/')
 async def login_by_oauth(request: Request, provider: ProviderEnum):
-    if provider == ProviderEnum.KAKAO:
-        base_url = settings.KAKAO_REDIRECT_URI
-    else:
-        base_url = settings.GOOGLE_REDIRECT_URI
+    base_url = "http://54.181.1.66/:8000"
     # 우리가 만들어줄 callback 주소다. 인증이 완료되면 callback 주소가 호출된다.
     redirect_uri = f'{base_url}/api/auth/{provider}/callback'
+    # redirect_uri = f'{base_url}/api/auth/{provider}/callback'
     
     # callback 주소를 담아 oauth 제공사들에 맞게 redirect를 요청
     return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
