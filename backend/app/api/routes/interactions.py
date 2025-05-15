@@ -5,7 +5,7 @@ from app.models import PreferenceEnum, UserNewspaperPreference, Message, UserNew
 from uuid import UUID
 from datetime import datetime
 
-router = APIRouter(prefix="/interactions/", tags=["interactions"])
+router = APIRouter(prefix="/interactions", tags=["interactions"])
 
 @router.post("/me/save/{newspaper_id}", response_model=Message)
 def save_newspaper_me(newspaper_id: int, current_user: CurrentUser, session: SessionDep) -> Message:
