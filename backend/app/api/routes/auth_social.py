@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -76,7 +77,9 @@ oauth.register(
 )
 @router.get('/{provider}/login/')
 async def login_by_oauth(request: Request, provider: ProviderEnum):
-    base_url = "http://54.181.1.66:8000"
+    domain = os.getenv("DOMAIN", "localhost")
+    base_url = f"http://{domain}:8000"
+
     # 우리가 만들어줄 callback 주소다. 인증이 완료되면 callback 주소가 호출된다.
     redirect_uri = f'{base_url}/api/auth/{provider}/callback'
     # redirect_uri = f'{base_url}/api/auth/{provider}/callback'

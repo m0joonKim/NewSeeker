@@ -48,7 +48,7 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     return UsersPublic(data=users, count=count)
 
 
-@router.get("/{user_id}", response_model=UserPublic)
+@router.get("/by_uid/{user_id}", response_model=UserPublic)
 def get_user_by_id(user_id: uuid.UUID, session: SessionDep) -> UserPublic:
     """
     Get a user by their ID.
@@ -73,7 +73,7 @@ def create_user(user: UserCreate, session: SessionDep) -> UserPublic:
     return user
 
 
-@router.put("/{user_id}", response_model=UserPublic)
+@router.put("/by_uid/{user_id}", response_model=UserPublic)
 def update_user(user_id: uuid.UUID, user_update: UserUpdate, session: SessionDep) -> UserPublic:
     """
     Update a user by their ID.
@@ -90,7 +90,7 @@ def update_user(user_id: uuid.UUID, user_update: UserUpdate, session: SessionDep
     return user
 
 
-@router.delete("/{user_id}", response_model=Message)
+@router.delete("/by_uid/{user_id}", response_model=Message)
 def delete_user(user_id: uuid.UUID, session: SessionDep) -> Message:
     """
     Delete a user by their ID.
