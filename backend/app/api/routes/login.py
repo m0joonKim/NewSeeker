@@ -127,3 +127,10 @@ def recover_password_html_content(email: str, session: SessionDep) -> Any:
     return HTMLResponse(
         content=email_data.html_content, headers={"subject:": email_data.subject}
     )
+@router.get("/logout")
+def logout(response: Response):
+    """
+    로그아웃 엔드포인트
+    """
+    response.delete_cookie("access_token")
+    return {"message": "Logged out successfully"}
