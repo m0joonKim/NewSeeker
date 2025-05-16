@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -24,7 +24,7 @@ router = APIRouter(tags=["login"])
 @router.post("/login/access-token")
 def login_access_token(
     session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
-) -> Token:
+)  -> Response: 
     """
     OAuth2 compatible token login, get an access token for future requests
     """
@@ -36,12 +36,17 @@ def login_access_token(
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return Token(
-        access_token=security.create_access_token(
-            user.id, expires_delta=access_token_expires
-        )
+    access_token = security.create_access_token(
+        user.id, expires_delta=access_token_expires
     )
-
+    response = Response(content="Login successful")
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=False  # Change to True in production with HTTPS
+    )
+    return response
 
 @router.post("/login/test-token", response_model=UserPublic)
 def test_token(current_user: CurrentUser) -> Any:

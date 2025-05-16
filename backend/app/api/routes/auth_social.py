@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -90,7 +90,7 @@ async def login_by_oauth(request: Request, provider: ProviderEnum):
 
 
 @router.get('/{provider}/callback', response_model=Token)
-async def callback_by_oauth(request: Request, provider: ProviderEnum, db: Session = Depends(get_db)):
+async def callback_by_oauth(request: Request, response: Response, provider: ProviderEnum, db: Session = Depends(get_db))->Response:
     token = await oauth.create_client(provider).authorize_access_token(request)
 
     # provider별 user_info 추출
@@ -124,9 +124,12 @@ async def callback_by_oauth(request: Request, provider: ProviderEnum, db: Sessio
 
     # JWT 토큰 생성
     access_token = create_access_token(str(user.id))
-    user_token = Token(
-        access_token=access_token,
-        token_type='bearer'
+    response = Response(content="Login successful")
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=False  # Change to True in production with HTTPS
     )
-    return user_token
+    return response
 

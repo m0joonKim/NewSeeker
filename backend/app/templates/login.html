@@ -165,15 +165,14 @@
                     body: formData
                 });
             
-                const data = await response.json();
-            
                 if (response.ok) {
-                    // 로그인 성공 시 토큰 저장
-                    localStorage.setItem('token', data.access_token);
-                    // 메인 페이지로 이동
+                    // 로그인 성공 시 쿠키 출력 및 메인 페이지로 이동
+                    console.log('Login successful');
+                    console.log('Cookies:', document.cookie);
                     window.location.href = '/api/auth/';
                 } else {
                     // 에러 메시지 표시
+                    const data = await response.json();
                     document.getElementById('errorMessage').textContent = data.detail || '로그인에 실패했습니다.';
                 }
             } catch (error) {
