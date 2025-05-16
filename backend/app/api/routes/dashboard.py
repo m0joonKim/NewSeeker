@@ -74,8 +74,6 @@ def get_all_newspapers(session: SessionDep, type: Optional[NewsPaperType] = None
     if type:
         statement = statement.where(Newspaper.type == type)
     newspapers = session.exec(statement).all()
-    if not newspapers:
-        raise HTTPException(status_code=404, detail="No newspapers foun")
     result = []
     for newspaper in newspapers:
         categories = get_newspaper_categories(newspaper.id, session)
@@ -102,8 +100,6 @@ def get_my_newspapers_by_category(
         select(UserCategory.category_id).where(UserCategory.user_id == current_user.id)
     ).all()
     
-    if not user_categories:
-        raise HTTPException(status_code=404, detail="User categories not found")
 
     # 중복 제거
     unique_category_ids = set(user_categories)
@@ -118,8 +114,6 @@ def get_my_newspapers_by_category(
     
     newspapers = session.exec(statement).all()
     
-    if not newspapers:
-        raise HTTPException(status_code=404, detail="No newspapers found for the given categories")
 
     # 각 뉴스페이퍼에 카테고리 정보 추가
     result = []
