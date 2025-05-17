@@ -124,7 +124,7 @@ async def callback_by_oauth(request: Request, response: Response, provider: Prov
 
     # JWT 토큰 생성
     access_token = create_access_token(str(user.id))
-    response = Response(content="Login successful")
+    response = RedirectResponse(url='http://localhost:3000/dashboard')  # 리다이렉트할 URL로 변경
     response.set_cookie(
         key="access_token",
         value=access_token,
