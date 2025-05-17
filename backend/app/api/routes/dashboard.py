@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import delete
 from app.api.routes.category import get_newspaper_categories
 from sqlmodel import select
@@ -65,11 +65,14 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/", response_model=List[dict])
-def get_all_newspapers(session: SessionDep, type: Optional[NewsPaperType] = None):
+def get_all_newspapers(request: Request, session: SessionDep, type: Optional[NewsPaperType] = None):
     """
     Get a list of all newspapers.
     Optionally filter by type: 'news', 'paper', or None for all types.
     """
+    # 쿠키 정보 로그 출력
+    print("Cookies:", request.cookies)
+
     statement = select(Newspaper).order_by(Newspaper.date.desc())
     if type:
         statement = statement.where(Newspaper.type == type)
@@ -86,6 +89,7 @@ def get_all_newspapers(session: SessionDep, type: Optional[NewsPaperType] = None
 
 @router.get("/me/user-categories", response_model=List[dict])
 def get_my_newspapers_by_category(
+    request: Request,
     current_user: CurrentUser, 
     session: SessionDep, 
     type: Optional[NewsPaperType] = None
@@ -95,6 +99,9 @@ def get_my_newspapers_by_category(
     Optionally filter by type: 'news' or 'paper'.
     Include category information for each newspaper.
     """
+    # 쿠키 정보 로그 출력
+    print("Cookies:", request.cookies)
+
     # 유저의 카테고리 ID 목록 가져오기
     user_categories = session.exec(
         select(UserCategory.category_id).where(UserCategory.user_id == current_user.id)
