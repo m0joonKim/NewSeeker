@@ -129,7 +129,8 @@ async def callback_by_oauth(request: Request, response: Response, provider: Prov
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False  # Change to True in production with HTTPS
+        secure=False,  # Change to True in production with HTTPS
+        samesite="Lax"
     )
     return response
 
