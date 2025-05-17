@@ -98,6 +98,9 @@ services:
 
       # Enable redirection for HTTP and HTTPS
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect
+    volumes:
+      - ./backend:/app
+      # - /app/.venv  # .venv 디렉토리를 마운트하지 않도록 주석 처리
 volumes:
   app-db-data:
 
