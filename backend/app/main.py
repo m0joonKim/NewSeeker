@@ -9,7 +9,7 @@ import requests
 
 from app.api.main import api_router
 from app.core.config import settings
-from app.api.routes import login, private, users, newspaper, category, alarm, interactions, utils, auth_social, stat, dashboard
+from app.api.routes import login, private, users, newspaper, category, alarm, interactions, utils, auth_social, stat, dashboard, ai_communicate
 
 
 
@@ -50,3 +50,4 @@ app.include_router(users.router, prefix="/api")
 # app.include_router(private.router, prefix="/api")
 app.include_router(utils.router, prefix="/api")
 app.include_router(auth_social.router, prefix="/api")
+app.include_router(ai_communicate.router, prefix="/api")    
